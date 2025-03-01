@@ -35,6 +35,30 @@ let liveData = {
   odds: {},
 };
 
+// Proxy route for https://www.98fastbet.com
+app.get("/proxy-98fastbet", async (req, res) => {
+  const { url } = req.query;
+  try {
+    const response = await axios.get(decodeURIComponent(url));
+    res.send(response.data);
+  } catch (error) {
+    console.error("Error proxying request to 98fastbet:", error.message);
+    res.status(500).json({ error: "Failed to fetch data from 98fastbet" });
+  }
+});
+
+// Proxy route for https://admin.98fastbet.com
+app.get("/proxy-admin-98fastbet", async (req, res) => {
+  const { url } = req.query;
+  try {
+    const response = await axios.get(decodeURIComponent(url));
+    res.send(response.data);
+  } catch (error) {
+    console.error("Error proxying request to admin.98fastbet:", error.message);
+    res.status(500).json({ error: "Failed to fetch data from admin.98fastbet" });
+  }
+});
+
 // Fetch ongoing matches every second
 const fetchOngoingMatches = async () => {
   try {
