@@ -10,7 +10,11 @@ const server = http.createServer(app);
 
 // Configure CORS options
 const corsOptions = {
-  origin: "http://localhost:3000", // Allow only your frontend origin
+  origin: [
+    "http://localhost:3000",       // Allow your frontend development origin
+    "https://www.98fastbet.com",   // Add this domain
+    "https://admin.98fastbet.com"  // Add this domain
+  ],
   methods: ["GET", "POST"],        // Allow specific HTTP methods
   credentials: true,               // Allow cookies and authentication headers
 };
@@ -24,7 +28,11 @@ app.use(express.json());
 // Socket.IO with CORS configuration
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000", // Allow only your frontend origin
+    origin: [
+      "http://localhost:3000",       // Allow your frontend development origin
+      "https://www.98fastbet.com",   // Add this domain
+      "https://admin.98fastbet.com"  // Add this domain
+    ],
     methods: ["GET", "POST"],
   },
 });
@@ -34,30 +42,6 @@ let liveData = {
   matches: [],
   odds: {},
 };
-
-// Proxy route for https://www.98fastbet.com
-app.get("/proxy-98fastbet", async (req, res) => {
-  const { url } = req.query;
-  try {
-    const response = await axios.get(decodeURIComponent(url));
-    res.send(response.data);
-  } catch (error) {
-    console.error("Error proxying request to 98fastbet:", error.message);
-    res.status(500).json({ error: "Failed to fetch data from 98fastbet" });
-  }
-});
-
-// Proxy route for https://admin.98fastbet.com
-app.get("/proxy-admin-98fastbet", async (req, res) => {
-  const { url } = req.query;
-  try {
-    const response = await axios.get(decodeURIComponent(url));
-    res.send(response.data);
-  } catch (error) {
-    console.error("Error proxying request to admin.98fastbet:", error.message);
-    res.status(500).json({ error: "Failed to fetch data from admin.98fastbet" });
-  }
-});
 
 // Fetch ongoing matches every second
 const fetchOngoingMatches = async () => {
@@ -106,15 +90,15 @@ const fetchOdds = async () => {
       console.log(`Odds response for market ${marketId}:`, JSON.stringify(response.data, null, 2));
 
       if (response.data.result) {
-        const matchData = liveData.matches.find((match) => match.marketId === marketId);
+        const matchData = liveData.matches.find(match => match.marketId === marketId);
         const matchName = matchData ? matchData.matchName : `Market ${marketId}`;
 
         liveData.odds[marketId] = {
-          matchName, // ✅ Store match name
-          matchOdds: response.data.result.team_data || [], // ✅ Match Odds (Lagai/Khai)
+          matchName,  // ✅ Store match name
+          matchOdds: response.data.result.team_data || [],  // ✅ Match Odds (Lagai/Khai)
           fancyMarkets: response.data.result.session || [],
           commissionFancy: response.data.result.commission_fancy_data || [],
-          noCommissionFancy: response.data.result.no_commission_fancy_data || [],
+          noCommissionFancy: response.data.result.no_commission_fancy_data || []
         };
       }
     }
