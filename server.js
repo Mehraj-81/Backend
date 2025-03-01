@@ -1,21 +1,35 @@
-// server.js - Node.js backend for cricket betting site
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 const http = require("http");
 const socketIo = require("socket.io");
 
+// Initialize Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
+
+// Configure CORS options
+const corsOptions = {
+  origin: "http://localhost:3000", // Allow only your frontend origin
+  methods: ["GET", "POST"],        // Allow specific HTTP methods
+  credentials: true,               // Allow cookies and authentication headers
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Handle preflight requests
+
+// Middleware to parse JSON
+app.use(express.json());
+
+// Socket.IO with CORS configuration
 const io = socketIo(server, {
   cors: {
-    origin: "*",
+    origin: "http://localhost:3000", // Allow only your frontend origin
+    methods: ["GET", "POST"],
   },
 });
 
-app.use(express.json());
-app.use(cors());
-
+// In-memory data store
 let liveData = {
   matches: [],
   odds: {},
@@ -36,6 +50,10 @@ const fetchOngoingMatches = async () => {
       }
     );
 
+    if (!response.data || !response.data.data) {
+      throw new Error("Invalid response from matchList API");
+    }
+
     liveData.matches = response.data.data.map((match) => ({
       eventId: match.eventId,
       matchName: match.matchName,
@@ -46,7 +64,7 @@ const fetchOngoingMatches = async () => {
 
     io.emit("updateMatches", liveData.matches);
   } catch (error) {
-    console.error("Error fetching ongoing matches:", error);
+    console.error("Error fetching ongoing matches:", error.message);
   }
 };
 
@@ -61,26 +79,25 @@ const fetchOdds = async () => {
         `https://oddsapi.winx777.com/v2/api/oddsData?market_id=${marketId}`
       );
 
-      // Log the full response to debug
       console.log(`Odds response for market ${marketId}:`, JSON.stringify(response.data, null, 2));
 
       if (response.data.result) {
-        const matchData = liveData.matches.find(match => match.marketId === marketId);
+        const matchData = liveData.matches.find((match) => match.marketId === marketId);
         const matchName = matchData ? matchData.matchName : `Market ${marketId}`;
 
         liveData.odds[marketId] = {
-          matchName,  // ✅ Store match name
-          matchOdds: response.data.result.team_data || [],  // ✅ Match Odds (Lagai/Khai)
+          matchName, // ✅ Store match name
+          matchOdds: response.data.result.team_data || [], // ✅ Match Odds (Lagai/Khai)
           fancyMarkets: response.data.result.session || [],
           commissionFancy: response.data.result.commission_fancy_data || [],
-          noCommissionFancy: response.data.result.no_commission_fancy_data || []
+          noCommissionFancy: response.data.result.no_commission_fancy_data || [],
         };
       }
     }
 
     io.emit("updateOdds", liveData.odds);
   } catch (error) {
-    console.error("Error fetching odds:", error);
+    console.error("Error fetching odds:", error.message);
   }
 };
 
